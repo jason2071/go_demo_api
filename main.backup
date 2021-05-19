@@ -1,0 +1,109 @@
+package main
+
+import (
+	"demo_api/database"
+	"demo_api/models"
+	"fmt"
+	"os"
+	"time"
+
+	"log"
+
+	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/joho/godotenv"
+)
+
+func GenerateJWT(user models.User) (string, error) {
+	key := []byte(os.Getenv("JWT_SECRET_KEY"))
+	token := jwt.New(jwt.SigningMethodHS256)
+	claims := token.Claims.(jwt.MapClaims)
+
+	claims["authorized"] = true
+	claims["data"] = user
+	claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
+
+	tokenString, err := token.SignedString(key)
+
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, err
+}
+
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+func main() {
+	conn := database.InitDB()
+	defer conn.Close()
+
+	app := fiber.New()
+	app.Use(cors.New())
+	app.Use(logger.New())
+
+	app.Get("/api/products", func(c *fiber.Ctx) error {
+
+		var product models.Product
+		var products []models.Product
+
+		row, err := conn.DB().Query("SELECT * FROM products")
+
+		if err != nil {
+			panic(err)
+		}
+
+		for row.Next() {
+			row.Scan(&product.Id, &product.Title, &product.Image, &product.Description, &product.Price)
+			products = append(products, product)
+		}
+
+		return c.JSON(products)
+	})
+
+	app.Post("/api/products", func(c *fiber.Ctx) error {
+
+		login := new(models.Login)
+
+		if err := c.BodyParser(login); err != nil {
+			return err
+		}
+
+		var result models.User
+
+		conn.DB().QueryRow("SELECT * FROM account WHERE username = ?", login.Username).Scan(&result.Id, &result.Username, &result.Password, &result.Name)
+
+		if result.Username == "" {
+			return c.JSON(fiber.Map{
+				"msg": "User not found",
+			})
+		}
+
+		if result.Password != login.Password {
+			return c.JSON(fiber.Map{
+				"msg": "Password is incorrect",
+			})
+		}
+
+		tokenString, errorToken := GenerateJWT(result)
+
+		if errorToken != nil {
+			fmt.Println(errorToken)
+		}
+
+		return c.JSON(fiber.Map{
+			"data":  result,
+			"token": tokenString,
+		})
+
+	})
+
+	app.Listen(":5000")
+}
