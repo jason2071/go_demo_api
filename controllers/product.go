@@ -4,7 +4,6 @@ import (
 	"demo_api/handler"
 	"demo_api/models"
 	"demo_api/repository"
-	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -80,7 +79,6 @@ func (c *productController) UpdateProduct(ctx *fiber.Ctx) error {
 
 	body := models.Product{}
 	err := ctx.BodyParser(&body)
-	fmt.Println(body)
 
 	if err != nil {
 		return handler.NotFoundResponse(ctx, err.Error())
