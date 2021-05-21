@@ -20,4 +20,5 @@ func NewRoutes(productController controllers.ProductController) Routes {
 
 func (r *productRoutes) Install(app *fiber.App) {
 	app.Get("/api/products", r.productController.GetAllProduct)
+	app.Get("/api/search", r.productController.SearchProduct)
 }
