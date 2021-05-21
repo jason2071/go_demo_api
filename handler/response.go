@@ -37,8 +37,14 @@ func SuccessWithItems(ctx *fiber.Ctx, data []models.Product) error {
 	})
 }
 
-func SuccessWithLogin(ctx *fiber.Ctx, data string) error {
+func SuccessWithLogin(ctx *fiber.Ctx, text string) error {
 	return ctx.Status(http.StatusFound).JSON(fiber.Map{
-		"item": data,
+		"data": text,
+	})
+}
+
+func BadRequest(ctx *fiber.Ctx, text string) error {
+	return ctx.Status(http.StatusBadRequest).JSON(fiber.Map{
+		"message": text,
 	})
 }

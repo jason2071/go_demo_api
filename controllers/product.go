@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"demo_api/handler"
+	"demo_api/models"
 	"demo_api/repository"
 
 	"github.com/gofiber/fiber/v2"
@@ -10,6 +11,7 @@ import (
 type ProductController interface {
 	GetAllProduct(ctx *fiber.Ctx) error
 	SearchProduct(ctx *fiber.Ctx) error
+	InsertProduct(ctx *fiber.Ctx) error
 }
 
 type productController struct {
@@ -40,4 +42,34 @@ func (c *productController) SearchProduct(ctx *fiber.Ctx) error {
 	}
 
 	return handler.SuccessWithItems(ctx, data)
+}
+
+func (controller *productController) InsertProduct(ctx *fiber.Ctx) error {
+
+	body := models.Product{}
+	err := ctx.BodyParser(&body)
+
+	if err != nil {
+		return handler.NotFoundResponse(ctx, err.Error())
+	}
+
+	if body.Title == "" {
+		return handler.BadRequest(ctx, "title is require")
+	}
+
+	if body.Category == "" {
+		return handler.BadRequest(ctx, "category is require")
+	}
+
+	if body.Price == "" {
+		body.Price = "0"
+	}
+
+	result, err := controller.productRepo.CreateProduct(body)
+
+	if err != nil {
+		return handler.InternalServerError(ctx, err)
+	}
+
+	return handler.SuccessResponse(ctx, result)
 }

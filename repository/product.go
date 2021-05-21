@@ -10,6 +10,7 @@ import (
 type ProductRepo interface {
 	GetAll() ([]models.Product, error)
 	Search(q string) ([]models.Product, error)
+	CreateProduct(item models.Product) (string, error)
 }
 
 type productRepo struct {
@@ -61,4 +62,14 @@ func (r *productRepo) Search(q string) ([]models.Product, error) {
 	}
 
 	return results, nil
+}
+
+func (repo *productRepo) CreateProduct(item models.Product) (string, error) {
+	_, err := repo.c.Query("INSERT INTO products (title, description, image, price, category) VALUE (?,?,?,?,?)", item.Title, item.Description, item.Image, item.Price, item.Category)
+
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("product %s create", item.Title), nil
 }
