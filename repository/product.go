@@ -4,13 +4,16 @@ import (
 	"database/sql"
 	"demo_api/database"
 	"demo_api/models"
+	"errors"
 	"fmt"
 )
 
 type ProductRepo interface {
 	GetAll() ([]models.Product, error)
+	GetProductByID(id string) (models.Product, error)
 	Search(q string) ([]models.Product, error)
 	CreateProduct(item models.Product) (string, error)
+	PutProduct(item models.Product) (string, error)
 }
 
 type productRepo struct {
@@ -22,23 +25,30 @@ func NewProductRepo(conn database.Connection) ProductRepo {
 }
 
 func (r *productRepo) GetAll() ([]models.Product, error) {
-
 	var result models.Product
 	var results []models.Product
 
-	row, err := r.c.Query("SELECT * FROM products")
+	row, err := r.c.Query("SELECT products.id,products.title,products.description,products.image,products.price,category.title as category FROM products JOIN category ON category.id = products.category")
 
 	if err != nil {
 		return nil, err
 	}
 
 	for row.Next() {
-		row.Scan(&result.Id, &result.Title, &result.Description, &result.Image, &result.Price)
+		row.Scan(&result.Id, &result.Title, &result.Description, &result.Image, &result.Price, &result.Category)
 		results = append(results, result)
 	}
 
 	return results, nil
+}
 
+func (r *productRepo) GetProductByID(id string) (models.Product, error) {
+	var result models.Product
+	r.c.QueryRow("SELECT * FROM products WHERE id = ?", id).Scan(&result.Id, &result.Title, &result.Description, &result.Image, &result.Price, &result.Category)
+	if result.Title == "" {
+		return result, errors.New("product not found")
+	}
+	return result, nil
 }
 
 func (r *productRepo) Search(q string) ([]models.Product, error) {
@@ -71,5 +81,15 @@ func (repo *productRepo) CreateProduct(item models.Product) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("product %s create", item.Title), nil
+	return fmt.Sprintf("product %s create success", item.Title), nil
+}
+
+func (r *productRepo) PutProduct(item models.Product) (string, error) {
+	_, err := r.c.Query("UPDATE products SET title=?, description=?, image=?, price=?, category=? WHERE id=?", item.Title, item.Description, item.Image, item.Price, item.Category, item.Id)
+
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("product %s update success", item.Title), nil
 }

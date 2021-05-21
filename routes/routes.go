@@ -27,4 +27,5 @@ func (r *productRoutes) Install(app *fiber.App) {
 	v1.Get("/products", r.productController.GetAllProduct)
 	v1.Get("/search", r.productController.SearchProduct)
 	v1.Post("/product/create", r.productController.InsertProduct)
+	v1.Put("/product/edit", r.productController.UpdateProduct)
 }
